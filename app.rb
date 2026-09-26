@@ -66,22 +66,22 @@ post '/snippets' do
   content = params[:content].to_s.strip
 
   if content.empty?
-    @error = "Conținutul nu poate fi gol!"
+    @error = "Content cannot be empty!"
     return erb :index
   end
 
-  # Maximum aproximativ 1 MB
+  # Roughly 1 MB max
   if content.bytesize > 1_000_000
-    @error = "Snippet-ul este prea mare. Limita este de 1 MB."
+    @error = "Snippet is too large. The limit is 1 MB."
     return erb :index
   end
 
   title = params[:title].to_s.strip
 
-  title = "Fără titlu" if title.empty?
+  title = "Untitled" if title.empty?
 
   if title.bytesize > 200
-    @error = "Titlul este prea lung."
+    @error = "Title is too long."
     return erb :index
   end
 
@@ -137,13 +137,13 @@ get '/s/:slug' do
     [params[:slug]]
   ).first
 
-  halt 404, "Snippet-ul nu a fost găsit!" unless @snippet
+  halt 404, "Snippet not found!" unless @snippet
 
   if @snippet['expires_at']
     expire_time = Time.parse(@snippet['expires_at'])
 
     if Time.now.utc > expire_time
-      halt 410, "Acest snippet a expirat și nu mai este disponibil."
+      halt 410, "This snippet has expired and is no longer available."
     end
   end
 
@@ -160,13 +160,13 @@ get '/s/:slug/raw' do
     [params[:slug]]
   ).first
 
-  halt 404, "Snippet negăsit!" unless snippet
+  halt 404, "Snippet not found!" unless snippet
 
   if snippet['expires_at']
     expire_time = Time.parse(snippet['expires_at'])
 
     if Time.now.utc > expire_time
-      halt 410, "Expirat."
+      halt 410, "Expired."
     end
   end
 
@@ -183,7 +183,7 @@ __END__
 
 @@layout
 <!DOCTYPE html>
-<html lang="ro">
+<html lang="en">
 
 <head>
   <meta charset="UTF-8">
@@ -195,43 +195,250 @@ __END__
 
   <title>Ruby Snippet Sharer</title>
 
-  <link
-    rel="stylesheet"
-    href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css"
-  >
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
   <style>
-    pre {
-      background: #202020;
-      color: #f8f8f2;
-      padding: 15px;
-      border-radius: 8px;
-      overflow-x: auto;
-      white-space: pre-wrap;
-      word-wrap: break-word;
+    :root {
+      --bg-0: #0b0d14;
+      --bg-1: #11131c;
+      --bg-2: #171a25;
+      --panel: rgba(255, 255, 255, 0.04);
+      --panel-border: rgba(255, 255, 255, 0.08);
+      --text: #e9e9f1;
+      --text-dim: #9498ac;
+      --accent: #8b7cf6;
+      --accent-2: #34d3c9;
+      --accent-glow: rgba(139, 124, 246, 0.35);
+      --danger: #ff6b81;
+      --radius: 14px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      height: 100%;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Sora', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 15% 0%, rgba(139, 124, 246, 0.16), transparent 45%),
+        radial-gradient(circle at 85% 20%, rgba(52, 211, 201, 0.12), transparent 40%),
+        linear-gradient(180deg, var(--bg-0), var(--bg-1) 40%, var(--bg-2));
+      background-attachment: fixed;
+      min-height: 100vh;
+      line-height: 1.6;
+    }
+
+    header {
+      padding: 28px 20px 8px;
+      text-align: center;
+    }
+
+    header h2 {
+      margin: 0;
+      font-size: 1.5rem;
+      letter-spacing: 0.02em;
+    }
+
+    header a {
+      text-decoration: none;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      font-weight: 700;
+    }
+
+    main {
+      max-width: 760px;
+      margin: 20px auto 60px;
+      padding: 0 20px;
+    }
+
+    main > *:first-child {
+      margin-top: 0;
+    }
+
+    h3 {
+      font-weight: 600;
+      font-size: 1.15rem;
+      color: var(--text);
+      margin-bottom: 18px;
+    }
+
+    /* Card wrapper effect via form / pre / meta containers */
+    form,
+    .snippet-card {
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      border-radius: var(--radius);
+      padding: 28px;
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      box-shadow: 0 20px 50px -25px rgba(0, 0, 0, 0.6);
+    }
+
+    label {
+      display: block;
+      font-size: 0.82rem;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin: 20px 0 8px;
+    }
+
+    label:first-of-type {
+      margin-top: 0;
+    }
+
+    input[type="text"],
+    select,
+    textarea {
+      width: 100%;
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid var(--panel-border);
+      border-radius: 10px;
+      color: var(--text);
+      padding: 12px 14px;
+      font-size: 0.95rem;
+      font-family: inherit;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    input[type="text"]:focus,
+    select:focus,
+    textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
     }
 
     textarea {
       width: 100%;
-      min-height: 250px;
-      font-family: monospace;
-      font-size: 14px;
-      box-sizing: border-box;
+      min-height: 260px;
+      font-family: 'JetBrains Mono', ui-monospace, monospace;
+      font-size: 13.5px;
+      resize: vertical;
+    }
+
+    select {
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: linear-gradient(45deg, transparent 50%, var(--text-dim) 50%),
+                         linear-gradient(135deg, var(--text-dim) 50%, transparent 50%);
+      background-position: calc(100% - 18px) calc(1.1em), calc(100% - 13px) calc(1.1em);
+      background-size: 5px 5px, 5px 5px;
+      background-repeat: no-repeat;
+      padding-right: 36px;
+      cursor: pointer;
+    }
+
+    button[type="submit"] {
+      margin-top: 26px;
+      width: 100%;
+      border: none;
+      border-radius: 10px;
+      padding: 13px 22px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      color: #0b0d14;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+      box-shadow: 0 10px 25px -10px var(--accent-glow);
+    }
+
+    button[type="submit"]:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.08);
+      box-shadow: 0 14px 30px -10px var(--accent-glow);
+    }
+
+    button[type="submit"]:active {
+      transform: translateY(0);
+    }
+
+    pre {
+      background: rgba(0, 0, 0, 0.35);
+      color: #e6e6f0;
+      padding: 20px;
+      border-radius: 12px;
+      border: 1px solid var(--panel-border);
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      font-family: 'JetBrains Mono', ui-monospace, monospace;
+      font-size: 13.5px;
     }
 
     .meta {
-      font-size: 0.9em;
-      opacity: 0.7;
-      margin-bottom: 1em;
+      font-size: 0.85em;
+      color: var(--text-dim);
+      margin-bottom: 18px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--panel-border);
     }
 
     .alert {
-      color: #ff5555;
-      font-weight: bold;
+      color: var(--danger);
+      font-weight: 600;
+      background: rgba(255, 107, 129, 0.1);
+      border: 1px solid rgba(255, 107, 129, 0.3);
+      border-radius: 10px;
+      padding: 12px 16px;
+      margin-bottom: 18px;
     }
 
     .raw-link {
-      margin-top: 15px;
+      margin-top: 18px;
+    }
+
+    a {
+      color: var(--accent-2);
+      transition: color 0.15s ease;
+    }
+
+    a:hover {
+      color: var(--accent);
+    }
+
+    a[target="_blank"] {
+      display: inline-block;
+      font-size: 0.9rem;
+      text-decoration: none;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--panel-border);
+      padding: 8px 14px;
+      border-radius: 8px;
+    }
+
+    a[target="_blank"]:hover {
+      background: rgba(255, 255, 255, 0.09);
+    }
+
+    footer {
+      text-align: center;
+      padding: 24px 20px 40px;
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      letter-spacing: 0.02em;
+    }
+
+    footer span {
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      font-weight: 600;
     }
   </style>
 </head>
@@ -240,7 +447,7 @@ __END__
 
 <header>
   <h2>
-    <a href="/" style="text-decoration:none;">
+    <a href="/">
       📋 Ruby Pastebin
     </a>
   </h2>
@@ -250,13 +457,17 @@ __END__
   <%= yield %>
 </main>
 
+<footer>
+  build by <span>Adrian</span>
+</footer>
+
 </body>
 </html>
 
 
 @@index
 
-<h3>Adaugă un fragment de cod sau text</h3>
+<h3>Add a code or text snippet</h3>
 
 <% if @error %>
   <p class="alert">
@@ -267,54 +478,51 @@ __END__
 <form action="/snippets" method="POST">
 
   <label for="title">
-    Titlu (opțional):
+    Title (optional):
   </label>
 
   <input
     type="text"
     id="title"
     name="title"
-    placeholder="Ex: config.json sau script.py"
+    placeholder="e.g. config.json or script.py"
     maxlength="200"
   >
 
   <label for="content">
-    Conținut:
+    Content:
   </label>
 
   <textarea
     id="content"
     name="content"
-    placeholder="Lipește codul sau textul aici..."
+    placeholder="Paste your code or text here..."
     maxlength="1000000"
     required
   ></textarea>
 
   <label for="expiry">
-    Expirare:
+    Expiration:
   </label>
 
   <select id="expiry" name="expiry">
 
     <option value="never">
-      Niciodată
+      Never
     </option>
 
     <option value="24h" selected>
-      După 24 de ore
+      After 24 hours
     </option>
 
     <option value="1h">
-      După 1 oră
+      After 1 hour
     </option>
 
   </select>
 
-  <br>
-  <br>
-
   <button type="submit">
-    Creează Link
+    Create Link
   </button>
 
 </form>
@@ -322,47 +530,50 @@ __END__
 
 @@show
 
-<h3>
-  <%= h @snippet['title'] %>
-</h3>
+<div class="snippet-card">
 
-<div class="meta">
+  <h3>
+    <%= h @snippet['title'] %>
+  </h3>
 
-  Creat la:
-  <%= h @snippet['created_at'] %>
+  <div class="meta">
 
-  |
+    Created at:
+    <%= h @snippet['created_at'] %>
 
-  <% if @snippet['expires_at'] %>
+    |
 
-    Expiră la:
-    <%= h @snippet['expires_at'] %>
+    <% if @snippet['expires_at'] %>
 
-  <% else %>
+      Expires at:
+      <%= h @snippet['expires_at'] %>
 
-    Expirare: Niciodată
+    <% else %>
 
-  <% end %>
+      Expiration: Never
+
+    <% end %>
+
+  </div>
+
+  <pre><code><%= h @snippet['content'] %></code></pre>
+
+  <p class="raw-link">
+
+    <a
+      href="/s/<%= h @snippet['slug'] %>/raw"
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      📄 View Raw Text
+    </a>
+
+  </p>
 
 </div>
 
-<pre><code><%= h @snippet['content'] %></code></pre>
-
-<p class="raw-link">
-
-  <a
-    href="/s/<%= h @snippet['slug'] %>/raw"
-    target="_blank"
-    rel="noopener noreferrer"
-  >
-    📄 Vezi Text Brut / Raw
-  </a>
-
-</p>
-
 <p>
   <a href="/">
-    ➕ Adaugă alt snippet
+    ➕ Add another snippet
   </a>
 </p>
-
