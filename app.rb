@@ -458,7 +458,7 @@ __END__
 </main>
 
 <footer>
-  build by <span>Adrian</span>
+  Built by <span>Adrian</span>
 </footer>
 
 </body>
