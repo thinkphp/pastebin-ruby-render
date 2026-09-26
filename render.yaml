@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: ruby-pastebin
+    runtime: ruby
+    plan: starter
+
+    buildCommand: bundle install
+
+    startCommand: bundle exec puma -C config.ru -p $PORT
+
+    envVars:
+      - key: DATABASE_PATH
+        value: /var/data/snippets.db
+
+    disk:
+      name: snippets-data
+      mountPath: /var/data
+      sizeGB: 1
